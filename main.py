@@ -45,22 +45,21 @@ def create_spotify_playlist(auth: SpotifyAuth, song_uris, songs, playlist_id):
     
     # Check if the request was successful and Print the output
     if(r.status_code == 201):
-        print('###############')
-        print(f'Playlist with length of {len(song_uris)} songs Updated!')
-        print(f'Original Playlist length: {len(songs)}')
-        print(f'Could not find uris for {len(songs) - len(song_uris)} songs')
-        print('###############')
+        print(f'\033[32m Playlist with length of {len(song_uris)} songs Updated!')
+        print(f'\033[32m Original Playlist length: {len(songs)}')
+        print(f'\033[32m Could not find uris for {len(songs) - len(song_uris)} songs')
+        print('\n \n')
     else:
-        print(f'Could not add songs to playlist: {r.text}')
+        print(f'\033[31m Could not add songs to playlist: {r.text}')
 
 def get_songs_from_apple_playlist(url: str):
     r =  requests.get(url)
     
     # Check if the request was successful
     if r.status_code == 200:
-        print(f'Found playlist!')
+        print(f'\033[32m Found playlist!')
     else:
-        print(f'there was an error while getting playlist: {r.text}')
+        print(f'\033[31m there was an error while getting playlist: {r.text}')
         pass
     
     soup = BeautifulSoup(r.text, 'html.parser')
@@ -89,8 +88,11 @@ def get_spotify_uris(songs, auth: SpotifyAuth):
 
         data = r.json()
 
+        if(r.status_code != 200 and r.status_code != 201 and r.status_code != 404):
+            print(f'\033[31m Error while searching for song: {song.search_str()}')
+
         if len(data['tracks']['items']) == 0:
-            print(f'------ Could not find uri for {song.search_str()}')
+            print(f'\033[33m ######## Could not find uri for {song.search_str()}')
             continue
 
         # Loop through the results and get the uri of the first match
@@ -107,13 +109,12 @@ def get_spotify_uris(songs, auth: SpotifyAuth):
 
             if len_diff < 1500 and len_diff > -1500 and (same_title or title_diff > 0.8):
                 list.append(item['uri'])
-                print(f'{len_diff}:{title_diff} | Found uri for {song.search_str()}.')
                 break
             else:
-                print(f'------ {len_diff}:{title_diff} | Strings: {apple_name} vs. {spotify_name}')
+                print(f'\033[34m {len_diff}:{title_diff} \033[0m {apple_name} vs. {spotify_name}')
 
                 if(is_last):
-                    print(f'######## Could not find uri for {song.search_str()}')
+                    print(f'\033[33m ######## Could not find uri for {song.search_str()}')
                 continue
 
     return list
