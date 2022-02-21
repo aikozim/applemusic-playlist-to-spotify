@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from auth import SpotifyAuth
 from helpers import signal_last
+from difflib import SequenceMatcher
 import requests, re, json, config
 
 def main():
@@ -44,9 +45,11 @@ def create_spotify_playlist(auth: SpotifyAuth, song_uris, songs, playlist_id):
     
     # Check if the request was successful and Print the output
     if(r.status_code == 201):
+        print('###############')
         print(f'Playlist with length of {len(song_uris)} songs Updated!')
         print(f'Original Playlist length: {len(songs)}')
         print(f'Could not find uris for {len(songs) - len(song_uris)} songs')
+        print('###############')
     else:
         print(f'Could not add songs to playlist: {r.text}')
 
@@ -84,24 +87,44 @@ def get_spotify_uris(songs, auth: SpotifyAuth):
         r = requests.get(f'https://api.spotify.com/v1/search?q={song.search_str()}&type=track', 
                         headers={'Authorization': f'Bearer {auth.token}'}) 
 
-        if len(r.json()['tracks']['items']) == 0:
+        data = r.json()
+
+        if len(data['tracks']['items']) == 0:
             print(f'------ Could not find uri for {song.search_str()}')
             continue
 
         # Loop through the results and get the uri of the first match
         for is_last, item in signal_last(r.json()['tracks']['items']):
-            diff = song.length_in_ms() - item['duration_ms']
-            if diff < 1500 and diff > -1500:
+
+            # Normalize the Titles 
+            spotify_name = normalize_string(item['name'])
+            apple_name = normalize_string(song.title)
+
+            # Compare the songs
+            len_diff = song.length_in_ms() - item['duration_ms'] # difference in length
+            title_diff = SequenceMatcher(None, spotify_name, apple_name).ratio() # difference in title
+            same_title = apple_name in spotify_name or spotify_name in apple_name
+
+            if len_diff < 1500 and len_diff > -1500 and (same_title or title_diff > 0.8):
                 list.append(item['uri'])
-                print(f'Found uri for {song.search_str()} with diff of {diff}')
+                print(f'{len_diff}:{title_diff} | Found uri for {song.search_str()}.')
                 break
             else:
+                print(f'------ {len_diff}:{title_diff} | Strings: {apple_name} vs. {spotify_name}')
+
                 if(is_last):
-                    print(f'------ Could not find uri for {song.search_str()}')
+                    print(f'######## Could not find uri for {song.search_str()}')
                 continue
 
     return list
     
+
+def normalize_string(string: str) -> str:
+    string = string.lower()
+    string = re.sub('[^a-z0-9 ]', '', string)
+    string = re.sub("[\(\[].*?[\)\]]", "", string)
+
+    return string
     
 
 main()
