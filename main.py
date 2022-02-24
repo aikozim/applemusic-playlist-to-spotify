@@ -83,8 +83,11 @@ def get_spotify_uris(songs, auth: SpotifyAuth):
     
     for song in songs:
         # Make search request to Spotify
-        r = requests.get(f'https://api.spotify.com/v1/search?q={song.search_str()}&type=track', 
-                        headers={'Authorization': f'Bearer {auth.token}'}) 
+        try:
+            r = requests.get(f'https://api.spotify.com/v1/search?q={song.search_str()}&type=track', 
+                            headers={'Authorization': f'Bearer {auth.token}'}) 
+        except:
+            print(f'\033[31m Error while searching for song: {song.search_str()}')
 
         data = r.json()
 

@@ -37,3 +37,7 @@ playlists = [
 ```
 
 5. Start the script using `python3 main.py` in the terminal. It should start the script and mirror all the Playlists once. If you want to do this regularly you have to set up some kind of scheduler like cron to run the script.
+
+
+## ToDo
+- Descriptions
