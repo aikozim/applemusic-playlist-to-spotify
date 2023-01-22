@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+xfrom bs4 import BeautifulSoup
 from auth import SpotifyAuth
 from helpers import signal_last
 from difflib import SequenceMatcher
@@ -38,19 +38,23 @@ class AppleSong:
         return f'{title} {artists}'
     
 def create_spotify_playlist(auth: SpotifyAuth, song_uris, songs, playlist_id):
-    # Create the playlist
-    r = requests.put(f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks', 
-                     headers={'Authorization': f'Bearer {auth.token}'}, 
-                     data=json.dumps({'uris': song_uris}))
-    
-    # Check if the request was successful and Print the output
-    if(r.status_code == 201):
-        print(f'\033[32m Playlist with length of {len(song_uris)} songs Updated!')
-        print(f'\033[32m Original Playlist length: {len(songs)}')
-        print(f'\033[32m Could not find uris for {len(songs) - len(song_uris)} songs')
-        print('\n \n')
-    else:
-        print(f'\033[31m Could not add songs to playlist: {r.text}')
+    # Separate the uris into lists of 100 to avoid the 100 limit of the Spotify API
+    separeted_song_uris = [song_uris[i:i+99] for i in range(0, len(song_uris), 99)]
+
+    for uris in separeted_song_uris:
+        # Create the playlist
+        r = requests.put(f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks', 
+                        headers={'Authorization': f'Bearer {auth.token}'}, 
+                        data=json.dumps({'uris': uris}))
+        
+        # Check if the request was successful and Print the output
+        if(r.status_code == 201):
+            print(f'\033[32m Playlist with length of {len(song_uris)} songs Updated!')
+            print(f'\033[32m Original Playlist length: {len(songs)}')
+            print(f'\033[32m Could not find uris for {len(songs) - len(song_uris)} songs')
+            print('\n \n')
+        else:
+            print(f'\033[31m Could not add songs to playlist: {r.text}')
 
 def get_songs_from_apple_playlist(url: str):
     r =  requests.get(url)
@@ -62,16 +66,16 @@ def get_songs_from_apple_playlist(url: str):
         print(f'\033[31m there was an error while getting playlist: {r.text}')
         pass
     
-    soup = BeautifulSoup(r.text, 'html.parser')
+    soup = BeautifulSoup(r.content, 'html.parser')
     
     # get table with songs
-    divs = soup.find_all('div', {'class': 'songs-list-row songs-list-row--web-preview web-preview songs-list-row--two-lines songs-list-row--song'})
+    divs = soup.find_all('div', {'class': 'songs-list-row'})
     
     # Create a list of songs
     songs = []
     for div in divs:
         title = re.sub("[\(\[].*?[\)\]]", "", div.find('div', {'class': 'songs-list-row__song-name'}).text)
-        artists = [artist.text for artist in div.find('div', {'class': 'songs-list__col songs-list__col--artist typography-body'}).find_all('a', {'class': 'songs-list-row__link'})]
+        artists = [artist.text for artist in div.find('div', {'class': 'songs-list-row__by-line'}).find_all('a')]
         length = div.find('time', {'class': 'songs-list-row__length'}).text.strip()
         
         songs.append(AppleSong(title, artists, length))
@@ -90,9 +94,10 @@ def get_spotify_uris(songs, auth: SpotifyAuth):
             print(f'\033[31m Error while searching for song: {song.search_str()}')
 
         data = r.json()
-
+        
         if(r.status_code != 200 and r.status_code != 201 and r.status_code != 404):
             print(f'\033[31m Error while searching for song: {song.search_str()}')
+            continue
 
         if len(data['tracks']['items']) == 0:
             print(f'\033[33m ######## Could not find uri for {song.search_str()}')
