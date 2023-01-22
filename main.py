@@ -11,14 +11,23 @@ def main():
     
     # loop through playlists from config
     for playlist in config.playlists:
+        
         # Get songs from Apple Music playlist
         songs: list(AppleSong) =  get_songs_from_apple_playlist(playlist['applemusic_playlist_url'])
 
-        # Get the Spotify uris for the songs
-        spotify_uris = get_spotify_uris(songs, spAuth)
+        # Clear the playlist
+        clear_spotify_playlsit(spAuth, playlist['spotify_playlist_id'])
+
+        # Separate the uris into lists of 100 to avoid the 100 limit of the Spotify API
+        separeted_songs = [songs[i:i+99] for i in range(0, len(songs), 99)]
+
         
-        # Create the playlist
-        create_spotify_playlist(spAuth, spotify_uris, songs, playlist['spotify_playlist_id'])
+        for song_list in separeted_songs:
+            # Get the Spotify uris for the songs
+            spotify_uris = get_spotify_uris(song_list, spAuth)
+
+            # Create the playlist
+            create_spotify_playlist(spAuth, spotify_uris, song_list, playlist['spotify_playlist_id'])
 
 
 class AppleSong:
@@ -36,25 +45,34 @@ class AppleSong:
         title = self.title.strip()
                 
         return f'{title} {artists}'
-    
-def create_spotify_playlist(auth: SpotifyAuth, song_uris, songs, playlist_id):
-    # Separate the uris into lists of 100 to avoid the 100 limit of the Spotify API
-    separeted_song_uris = [song_uris[i:i+99] for i in range(0, len(song_uris), 99)]
 
-    for uris in separeted_song_uris:
-        # Create the playlist
-        r = requests.put(f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks', 
-                        headers={'Authorization': f'Bearer {auth.token}'}, 
-                        data=json.dumps({'uris': uris}))
-        
-        # Check if the request was successful and Print the output
-        if(r.status_code == 201):
-            print(f'\033[32m Playlist with length of {len(song_uris)} songs Updated!')
-            print(f'\033[32m Original Playlist length: {len(songs)}')
-            print(f'\033[32m Could not find uris for {len(songs) - len(song_uris)} songs')
-            print('\n \n')
-        else:
-            print(f'\033[31m Could not add songs to playlist: {r.text}')
+
+def clear_spotify_playlsit(auth:SpotifyAuth, playlist_id):
+    r = requests.put(f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks',
+                headers={'Authorization': f'Bearer {auth.token}',
+                }, data=json.dumps({'uris': []}))
+
+    # Check if the request was successful and Print the output
+    if(r.status_code == 201):
+        print(f'\033[32m Playlist cleared!')
+
+
+def create_spotify_playlist(auth: SpotifyAuth, song_uris, songs, playlist_id):
+    r = requests.post(f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks', 
+                    headers={
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': f'Bearer {auth.token}',
+                        }, 
+                    data=json.dumps(song_uris))
+    
+    # Check if the request was successful and Print the output
+    if(r.status_code == 201):
+        print(f'\033[32m {len(song_uris)} songs Updated!')
+        print(f'\033[32m Could not find uris for {len(songs) - len(song_uris)} songs')
+        print('\n \n')
+    else:
+        print(f'\033[31m Could not add songs to playlist: {r.content}')
 
 def get_songs_from_apple_playlist(url: str):
     r =  requests.get(url)
