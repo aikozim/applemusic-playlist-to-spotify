@@ -65,13 +65,13 @@ def get_songs_from_apple_playlist(url: str):
     soup = BeautifulSoup(r.text, 'html.parser')
     
     # get table with songs
-    divs = soup.find_all('div', {'class': 'songs-list-row songs-list-row--web-preview web-preview songs-list-row--two-lines songs-list-row--song'})
+    divs = soup.select('div.songs-list-row, div.songs-list-row--web-preview web-preview, div.songs-list-row--two-lines, div.songs-list-row--song')
     
     # Create a list of songs
     songs = []
     for div in divs:
         title = re.sub("[\(\[].*?[\)\]]", "", div.find('div', {'class': 'songs-list-row__song-name'}).text)
-        artists = [artist.text for artist in div.find('div', {'class': 'songs-list__col songs-list__col--artist typography-body'}).find_all('a', {'class': 'songs-list-row__link'})]
+        artists = [artist.text for artist in div.find('div', {'class': 'songs-list__col--secondary'}).find_all('a')]
         length = div.find('time', {'class': 'songs-list-row__length'}).text.strip()
         
         songs.append(AppleSong(title, artists, length))
