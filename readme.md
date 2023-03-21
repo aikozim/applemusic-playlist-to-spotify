@@ -56,6 +56,11 @@ playlists = [
 
 6. Start the script using `python3 main.py` in the terminal. The application will start mirroring all the playlists once. If you want to do this regularly, you can set up a scheduler like cron to run the script.
 
+7. Feel free to enable debug mode in the config if you want to see why songs are not matching.
+ ``` python
+debug = True
+```   
+
 
 ## ToDo
 
