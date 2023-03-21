@@ -16,7 +16,7 @@ def main():
         songs: list(AppleSong) =  get_songs_from_apple_playlist(playlist['applemusic_playlist_url'])
 
         # Clear the playlist
-        clear_spotify_playlsit(spAuth, playlist['spotify_playlist_id'])
+        clear_spotify_playlist(spAuth, playlist['spotify_playlist_id'])
 
         # Separate the uris into lists of 100 to avoid the 100 limit of the Spotify API
         separeted_songs = [songs[i:i+99] for i in range(0, len(songs), 99)]
@@ -47,7 +47,7 @@ class AppleSong:
         return f'{title} {artists}'
 
 
-def clear_spotify_playlsit(auth:SpotifyAuth, playlist_id):
+def clear_spotify_playlist(auth:SpotifyAuth, playlist_id):
     r = requests.put(f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks',
                 headers={'Authorization': f'Bearer {auth.token}',
                 }, data=json.dumps({'uris': []}))
