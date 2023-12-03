@@ -6,7 +6,7 @@ A Script, designed to automatically copy your favorite Apple Music playlists to 
 
 ### Heads-up
 
-Apple Music frequently updates how they format song information on their pages. This can sometimes make my script stop working. If you see any issues with the `get_songs_from_apple_playlist` function in the `main.py` file, please feel free to fix it and send us a Pull Request. I really appreciate every help in keeping everything running smoothly!
+Apple Music frequently updates how they format song information on their pages. This can sometimes make my script stop working. If you experience any issues you can take a look into the `get_songs_from_apple_playlist` function in the `main.py` file. Feel free to fix it and send me a Pull Request. I really appreciate every help in keeping everything running smoothly!
 
 ## Features
 
