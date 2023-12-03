@@ -16,12 +16,9 @@ def main():
         print(f'\033[94m Getting playlist {playlist["nickname"]} on Apple Music... \033[90m')
         songs: list(AppleSong) =  get_songs_from_apple_playlist(playlist["applemusic_playlist_url"])
 
-        # Clear old songs in Playlist
-        print(f'\033[94m Clearing old songs from Spotify playlist... \033[90m ')
-        clear_spotify_playlist(spAuth, playlist)
 
         # Add new songs to playlist
-        print(f'\033[94m Adding new songs to playlist... \033[90m ')
+        print(f'\033[94m Updating playlist... \033[90m ')
         add_songs_to_spotify_playlist(spAuth, playlist['spotify_playlist_id'], songs)
         
 
@@ -38,33 +35,38 @@ class AppleSong:
                 
         return f'{title} {artists}'
 
-
-def clear_spotify_playlist(auth:SpotifyAuth, playlist_id):
-    r = requests.put(f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks',
-                headers={'Authorization': f'Bearer {auth.token}',
-                }, data=json.dumps({'uris': []}))
-
-    # Check if the request was successful and Print the output
-    if(r.status_code == 201):
-        print(f'\033[32m Playlist cleared!')
-
-
 def add_songs_to_spotify_playlist(auth: SpotifyAuth, playlist_id, songs: AppleSong):
     # Separate the songs into lists of 100 to avoid the 100 limit of the Spotify API
     separeted_songs = [songs[i:i+99] for i in range(0, len(songs), 99)]
-
     updated_songs = 0
 
     for song_list in separeted_songs:
         song_uris = get_spotify_uris(song_list, auth)
 
-        r = requests.post(f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks', 
+        if updated_songs == 0:
+            r = requests.put(f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks',
                         headers={
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'Authorization': f'Bearer {auth.token}',
+                            "Authorization": f'Bearer {auth.token}',
+                            "Content-Type": "application/json"
                             }, 
-                        data=json.dumps(song_uris))
+                        data=json.dumps({'uris': song_uris}))
+            
+            # Check if the request was successful and Print the output
+            if(r.status_code == 201):
+                updated_songs += len(song_uris)
+            else:
+                print(f'\033[31m Could not add songs to playlist: {r.content}')
+                pass
+            
+            continue
+
+
+        r = requests.post(f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks', 
+                    headers={
+                        "Authorization": f'Bearer {auth.token}',
+                        "Content-Type": "application/json"
+                        }, 
+                    data=json.dumps({'uris': song_uris}))
         
         # Check if the request was successful and Print the output
         if(r.status_code == 201):
